@@ -80,9 +80,11 @@ Ob* Prim::dispatchHelper(Ctxt* ctxt) {
 Ob* Prim::dispatch(Ctxt* ctxt) {
     if (debugging_level)
         printf("\t%s\n", BASE(id)->asCstring());
-
+//fprintf(stderr, "%s\n", __PRETTY_FUNCTION__);
+//fprintf(stderr, "  this=%s\n", BASE(this)->asCstring());
     PROTECT(ctxt);
     Ob* result = dispatchHelper(ctxt);
+//fprintf(stderr, "  result=%s\n", BASE(result)->asCstring());
     if (result != INVALID && result != UPCALL && result != DEADTHREAD) {
         ctxt->ret(result);
     }
@@ -140,6 +142,7 @@ BuiltinPrim* BuiltinPrim::root = 0;
 
 DEF("runtime-error", obRuntimeError, 1, MaxArgs) {
     fprintf(stderr, "*** runtime error:\n");
+
     for (int i = 0; i < NARGS; i++) {
         putc('\t', stderr);
         BASE(ARG(i))->printQuotedOn(stderr);

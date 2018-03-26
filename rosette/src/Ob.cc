@@ -869,9 +869,15 @@ pOb Ob::unquote() { return self(); }
 Code* Ob::compileWrt(pOb env, pOb info) {
     PROTECT(env);
     pOb me = self();
+
     CompilationUnit* cu = CompilationUnit::create(me, info, me);
     cu->atTopLevel();
-    return cu->compileExpr(env, TopEnv);
+
+    Code * cp = cu->compileExpr(env, TopEnv);
+fprintf(stderr, "%s\n", __PRETTY_FUNCTION__);
+cp->dumpOn(stderr);
+
+    return cp;
 }
 
 
@@ -994,6 +1000,9 @@ DEF("compile", obCompile, 1, 3) {
     case 2:
         proto = ARG(1);
     }
+
+fprintf(stderr, "%s\n", __FUNCTION__);
+fprintf(stderr, "  proto=%s\n", BASE(proto)->asCstring());
 
     pOb result = BASE(ARG(0))->compileWrt(proto, info);
 

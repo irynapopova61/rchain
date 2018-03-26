@@ -671,7 +671,7 @@ pOb VirtualMachine::unwindAndDispatch() {
 void VirtualMachine::traceOpcode() {
     char buf[128];
     code->dumpInstr(pc.absolute, &buf[0]);
-    printf("%s\n", buf);
+    fprintf(stderr, "%s\n", buf);
 }
 
 
@@ -685,7 +685,11 @@ void VirtualMachine::load(pOb expr) {
 
 
 void VirtualMachine::evaluate(pOb expr) {
+fprintf(stderr, "%s\n", __FUNCTION__);
+fprintf(stderr, "  expr=%s\n", BASE(expr)->asCstring());
+
     Code* cp = BASE(expr)->compileWrt(TopEnv, NIV);
+
     if (cp != INVALID) {
         setup(cp, printResult, ArgReg(0));
         execute();
@@ -703,6 +707,9 @@ void VirtualMachine::execute() {
     Location loc;
     pOb result = INVALID;
 
+fprintf(stderr, "%s\n", __PRETTY_FUNCTION__);
+//getc(stdin);
+
 nextop:
 
     if (sigvec != 0)
@@ -719,18 +726,22 @@ nextop:
         goto exit;
 
     case opPush:
+fprintf(stderr, "  opPush:\n");
         ctxt = Ctxt::create(NIL, ctxt);
         goto nextop;
 
     case opPop:
+fprintf(stderr, "  opPop:\n");
         ctxt = ctxt->ctxt;
         goto nextop;
 
     case opNargs:
+fprintf(stderr, "  opNargs:\n");
         ctxt->nargs = OP_f0_op0(instr);
         goto nextop;
 
     case opAlloc: {
+fprintf(stderr, "  opAlloc:\n");
         Tuple* t = Tuple::create(OP_f0_op0(instr), NIV);
         ASSIGN(ctxt, argvec, t);
         goto nextop;
@@ -738,6 +749,7 @@ nextop:
 
 
     case opPushAlloc: {
+fprintf(stderr, "  opPushAlloc:\n");
         Tuple* t = Tuple::create(OP_f0_op0(instr), NIV);
         ctxt = Ctxt::create(t, ctxt);
         goto nextop;
@@ -745,6 +757,7 @@ nextop:
 
 
     case opExtend: {
+fprintf(stderr, "  opExtend:\n");
         Template* formals = (Template*)code->lit(OP_f0_op0(instr));
         Tuple* actuals = (Tuple*)INVALID;
         {
@@ -772,6 +785,7 @@ nextop:
     case opOutstanding | 1:
     case opOutstanding | 2:
     case opOutstanding | 3:
+fprintf(stderr, "  opOutstanding:\n");
         ctxt->pc = OP_f6_pc(instr);
         ctxt->outstanding = OP_e0_op0(FETCH);
         goto nextop;
@@ -780,6 +794,7 @@ nextop:
     case opFork | 1:
     case opFork | 2:
     case opFork | 3: {
+fprintf(stderr, "  opFork:\n");
         /*
          * Since we don't know whether ctxt is synchronous or
          * asynchronous, we need to clone it rather than call some
@@ -799,6 +814,7 @@ nextop:
     case opXmitTag | NextOff | UnwindOn:
     case opXmitTag | NextOn | UnwindOff:
     case opXmitTag | NextOn | UnwindOn:
+fprintf(stderr, "  opXmitTag:\n");
         ctxt->nargs = OP_f4_nargs(instr);
         ctxt->tag.atom = code->lit(OP_f4_op0(instr));
 
@@ -827,6 +843,7 @@ nextop:
     case opXmitArg | NextOff | UnwindOn:
     case opXmitArg | NextOn | UnwindOff:
     case opXmitArg | NextOn | UnwindOn:
+fprintf(stderr, "  opXmitArg:\n");
         ctxt->nargs = OP_f4_nargs(instr);
         ctxt->tag = ArgReg(OP_f4_op0(instr));
         goto doXmit;
@@ -835,6 +852,7 @@ nextop:
     case opXmitReg | NextOff | UnwindOn:
     case opXmitReg | NextOn | UnwindOff:
     case opXmitReg | NextOn | UnwindOn:
+fprintf(stderr, "  opXmitReg:\n");
         ctxt->nargs = OP_f4_nargs(instr);
         ctxt->tag = CtxtReg((CtxtRegName)OP_f4_op0(instr));
         goto doXmit;
@@ -843,6 +861,7 @@ nextop:
     case opXmit | NextOff | UnwindOn:
     case opXmit | NextOn | UnwindOff:
     case opXmit | NextOn | UnwindOn:
+fprintf(stderr, "  opXmit:\n");
         ctxt->nargs = OP_f5_op0(instr);
         goto doXmit;
 
@@ -850,6 +869,7 @@ nextop:
     case opXmitTagXtnd | NextOff | UnwindOn:
     case opXmitTagXtnd | NextOn | UnwindOff:
     case opXmitTagXtnd | NextOn | UnwindOn:
+fprintf(stderr, "  opXmitTagXtnd:\n");
         ctxt->nargs = OP_f5_op0(instr);
         ctxt->tag.atom = code->lit(OP_e0_op0(FETCH));
         goto doXmit;
@@ -858,6 +878,7 @@ nextop:
     case opXmitArgXtnd | NextOff | UnwindOn:
     case opXmitArgXtnd | NextOn | UnwindOff:
     case opXmitArgXtnd | NextOn | UnwindOn:
+fprintf(stderr, "  opXmitArgXtnd:\n");
         ctxt->nargs = OP_f5_op0(instr);
         ctxt->tag = ArgReg(OP_e0_op0(FETCH));
         goto doXmit;
@@ -866,6 +887,7 @@ nextop:
     case opXmitRegXtnd | NextOff | UnwindOn:
     case opXmitRegXtnd | NextOn | UnwindOff:
     case opXmitRegXtnd | NextOn | UnwindOn:
+fprintf(stderr, "  opXmitRegXtnd:\n");
         ctxt->nargs = OP_f5_op0(instr);
         ctxt->tag = CtxtReg((CtxtRegName)OP_e0_op0(FETCH));
         goto doXmit;
@@ -874,6 +896,7 @@ nextop:
     case opSend | NextOff | UnwindOn:
     case opSend | NextOn | UnwindOff:
     case opSend | NextOn | UnwindOn:
+fprintf(stderr, "  opSend:\n");
         ctxt->ctxt = (pCtxt)NIV;
         ctxt->nargs = OP_f5_op0(instr);
         ctxt->tag = LocLimbo;
@@ -883,6 +906,7 @@ nextop:
     case opApplyPrimTag | NextOff | UnwindOn:
     case opApplyPrimTag | NextOn | UnwindOff:
     case opApplyPrimTag | NextOn | UnwindOn: {
+fprintf(stderr, "  opApplyPrimTag:\n");
         uint16_t ext = FETCH.word;
         unsigned p_num = WORD_OP_e0_op0(ext);
         if (p_num == 255) {
@@ -915,6 +939,7 @@ nextop:
     case opApplyPrimArg | NextOff | UnwindOn:
     case opApplyPrimArg | NextOn | UnwindOff:
     case opApplyPrimArg | NextOn | UnwindOn: {
+fprintf(stderr, "  opApplyPrimArg:\n");
         uint16_t ext = FETCH.word;
         unsigned p_num = WORD_OP_e0_op0(ext);
         if (p_num == 255) {
@@ -946,6 +971,7 @@ nextop:
     case opApplyPrimReg | NextOff | UnwindOn:
     case opApplyPrimReg | NextOn | UnwindOff:
     case opApplyPrimReg | NextOn | UnwindOn: {
+fprintf(stderr, "  opApplyPrimReg:\n");
         uint16_t ext = FETCH.word;
         unsigned p_num = WORD_OP_e0_op0(ext);
         if (p_num == 255) {
@@ -975,6 +1001,7 @@ nextop:
     case opApplyCmd | NextOff | UnwindOn:
     case opApplyCmd | NextOn | UnwindOff:
     case opApplyCmd | NextOn | UnwindOn: {
+fprintf(stderr, "  opApplyCmd:\n");
         uint16_t ext = FETCH.word;
         unsigned p_num = WORD_OP_e0_op0(ext);
         if (p_num == 255) {
@@ -1000,11 +1027,13 @@ nextop:
 
     case opRtnTag | NextOff:
     case opRtnTag | NextOn:
+fprintf(stderr, "  opRtnTag:\n");
         ctxt->tag.atom = code->lit(OP_f5_op0(instr));
     /* fall through */
 
     case opRtn | NextOff:
     case opRtn | NextOn:
+fprintf(stderr, "  opRtn:\n");
     doRtn:
         if (ctxt->ret(ctxt->rslt))
             goto vmError;
@@ -1016,17 +1045,20 @@ nextop:
 
     case opRtnArg | NextOff:
     case opRtnArg | NextOn:
+fprintf(stderr, "  opLookupToReg:\n");
         ctxt->tag = ArgReg(OP_f5_op0(instr));
         goto doRtn;
 
     case opRtnReg | NextOff:
     case opRtnReg | NextOn:
+fprintf(stderr, "  opRtnReg:\n");
         ctxt->tag = CtxtReg((CtxtRegName)OP_f5_op0(instr));
         goto doRtn;
 
 
     case opUpcallRtn | NextOff:
     case opUpcallRtn | NextOn:
+fprintf(stderr, "  opUpcallRtn:\n");
         ctxt->tag.atom = code->lit(OP_f0_op0(instr));
         if (store(ctxt->tag, ctxt->ctxt, ctxt->rslt)) {
             goto vmError;
@@ -1038,11 +1070,13 @@ nextop:
 
 
     case opUpcallResume:
+fprintf(stderr, "  opUpcallResume:\n");
         ctxt->ctxt->scheduleStrand();
         goto doNextThread;
 
 
     case opNxt:
+fprintf(stderr, "  opNxt:\n");
     doNextThread:
         if (getNextStrand())
             goto exit;
@@ -1053,6 +1087,7 @@ nextop:
     case opJmpCut | 1:
     case opJmpCut | 2:
     case opJmpCut | 3: {
+fprintf(stderr, "  opJmpCut:\n");
         int cut = OP_e0_op0(FETCH);
         pOb new_env = ctxt->env;
         while (cut--) {
@@ -1067,6 +1102,7 @@ nextop:
     case opJmp | 1:
     case opJmp | 2:
     case opJmp | 3:
+fprintf(stderr, "  opJmp:\n");
         pc.absolute = code->absolutize(OP_f6_pc(instr));
         goto nextop;
 
@@ -1075,6 +1111,7 @@ nextop:
     case opJmpFalse | 1:
     case opJmpFalse | 2:
     case opJmpFalse | 3:
+fprintf(stderr, "  opJmpFalse:\n");
         if (ctxt->rslt == RBLFALSE) {
             pc.absolute = code->absolutize(OP_f6_pc(instr));
         }
@@ -1097,6 +1134,7 @@ nextop:
     case opLookupToArg | 0xd:
     case opLookupToArg | 0xe:
     case opLookupToArg | 0xf: {
+fprintf(stderr, "  opLookupToArg:\n");
         const int argno = OP_f2_op0(instr);
         pOb key = code->lit(OP_f2_op1(instr));
         pOb const val = BASE(BASE(ctxt->selfEnv)->meta())
@@ -1130,14 +1168,22 @@ nextop:
     case opLookupToReg | 0xd:
     case opLookupToReg | 0xe:
     case opLookupToReg | 0xf: {
+fprintf(stderr, "  opLookupToReg:\n");
         const int regno = OP_f2_op0(instr);
         pOb key = code->lit(OP_f2_op1(instr));
-        pOb const val = BASE(BASE(ctxt->selfEnv)->meta())
+        pOb val = BASE(BASE(ctxt->selfEnv)->meta())
                             ->lookupOBO(ctxt->selfEnv, key, ctxt);
+
+fprintf(stderr, "  regno=%d\n", regno);
+fprintf(stderr, "  key=%s\n", BASE(key)->asCstring());
+fprintf(stderr, "  val=%s\n", BASE(val)->asCstring());
+
         if (val == UPCALL) {
+fprintf(stderr, "  val=UPCALL\n");
             ctxt->pc = code->relativize(pc.absolute);
             goto doNextThread;
         } else if (val == ABSENT) {
+fprintf(stderr, "  val=ABSENT\n");
             handleMissingBinding(key, CtxtReg((CtxtRegName)regno));
             goto doNextThread;
         }
@@ -1170,6 +1216,7 @@ nextop:
     case opXferLexToArg | IndirectOn | 5:
     case opXferLexToArg | IndirectOn | 6:
     case opXferLexToArg | IndirectOn | 7: {
+fprintf(stderr, "  opXferLexToArg:\n");
         short level = OP_f7_level(instr);
         pOb env = ctxt->env;
         while (level--) {
@@ -1186,6 +1233,7 @@ nextop:
 
 
     case opXferLexToReg | IndirectOff | 0:
+fprintf(stderr, "  opXferLexToReg IndirectOff 0:\n");
         ASSIGN(ctxt, reg(OP_f7_op0(instr)),
                ctxt->env->slot(OP_f7_offset(instr)));
         goto nextop;
@@ -1205,6 +1253,7 @@ nextop:
     case opXferLexToReg | IndirectOn | 5:
     case opXferLexToReg | IndirectOn | 6:
     case opXferLexToReg | IndirectOn | 7: {
+fprintf(stderr, "  opXferLexToReg:\n");
         short level = OP_f7_level(instr);
         pOb env = ctxt->env;
         while (level--) {
@@ -1221,17 +1270,20 @@ nextop:
 
 
     case opXferGlobalToArg:
+fprintf(stderr, "  opXferGlogalToArg:\n");
         ASSIGN(ctxt->argvec, elem(OP_f0_op0(instr)),
                GlobalEnv->entry(OP_e1_op0(FETCH)));
         goto nextop;
 
 
     case opXferGlobalToReg:
+fprintf(stderr, "  opXferGlobalToReg:\n");
         ASSIGN(ctxt, reg(OP_f0_op0(instr)), GlobalEnv->entry(OP_e1_op0(FETCH)));
         goto nextop;
 
 
     case opXferArgToArg:
+fprintf(stderr, "  opXferArgToArg:\n");
         /*
          * There is no need to check whether argvec is old here, since we
          * are simply moving an already-accounted-for value to a
@@ -1243,22 +1295,27 @@ nextop:
 
 
     case opXferRsltToArg:
+fprintf(stderr, "  opXferRsltToArg:\n");
         ASSIGN(ctxt->argvec, elem(OP_f0_op0(instr)), ctxt->rslt);
         goto nextop;
 
     case opXferArgToRslt:
+fprintf(stderr, "  opXferArgToRslt:\n");
         ASSIGN(ctxt, rslt, ctxt->argvec->elem(OP_f0_op0(instr)));
         goto nextop;
 
     case opXferRsltToReg:
+fprintf(stderr, "  opXferRsltToReg:\n");
         ctxt->reg(OP_f0_op0(instr)) = ctxt->rslt;
         goto nextop;
 
     case opXferRegToRslt:
+fprintf(stderr, "  opXferRegToRslt:\n");
         ctxt->rslt = ctxt->reg(OP_f0_op0(instr));
         goto nextop;
 
     case opXferRsltToDest:
+fprintf(stderr, "  opXferRsltToDest:\n");
         loc.atom = code->lit(OP_f0_op0(instr));
         if (store(loc, ctxt, ctxt->rslt)) {
             goto vmError;
@@ -1267,23 +1324,27 @@ nextop:
         }
 
     case opXferSrcToRslt:
+fprintf(stderr, "  opXferSrcToRslt:\n");
         loc.atom = code->lit(OP_f0_op0(instr));
         ASSIGN(ctxt, rslt, fetch(loc, ctxt));
         goto nextop;
 
 
     case opIndLitToArg:
+fprintf(stderr, "  opIncLitToArg:\n");
         ASSIGN(ctxt->argvec, elem(OP_f1_op0(instr)),
                code->lit(OP_f1_op1(instr)));
         goto nextop;
 
 
     case opIndLitToReg:
+fprintf(stderr, "  opIndLitToReg:\n");
         ASSIGN(ctxt, reg(OP_f1_op0(instr)), code->lit(OP_f1_op1(instr)));
         goto nextop;
 
 
     case opIndLitToRslt:
+fprintf(stderr, "  opIndLitToRslt:\n");
         ASSIGN(ctxt, rslt, code->lit(OP_f0_op0(instr)));
         goto nextop;
 
@@ -1300,6 +1361,7 @@ nextop:
     case opImmediateLitToArg | 0x9:
     case opImmediateLitToArg | 0xa:
     case opImmediateLitToArg | 0xb:
+fprintf(stderr, "  opImmediateLitToArg:\n");
         ctxt->argvec->elem(OP_f2_op1(instr)) = vmLiterals[OP_f2_op0(instr)];
         goto nextop;
 
@@ -1316,6 +1378,7 @@ nextop:
     case opImmediateLitToReg | 0x9:
     case opImmediateLitToReg | 0xa:
     case opImmediateLitToReg | 0xb:
+fprintf(stderr, "  opImmediateLitToReg:\n");
         ctxt->reg(OP_f2_op1(instr)) = vmLiterals[OP_f2_op0(instr)];
         goto nextop;
 

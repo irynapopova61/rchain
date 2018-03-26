@@ -314,8 +314,11 @@ void AttrNode::emitApplyPrim(unsigned primnum, unsigned nargs, bool unwind,
 
 
 void AttrNode::emitExtend(Template* templat) {
+fprintf(stderr, "%s\n", __PRETTY_FUNCTION__);
+fprintf(stderr, "  templat=%s\n", BASE(templat)->asCstring());
     PROTECT_THIS(AttrNode);
     unsigned offset = SELF->cu->extendLitvec(templat);
+fprintf(stderr, "  offset=%u\n", offset);
     SELF->emitF0(opExtend, offset);
 }
 
@@ -405,6 +408,7 @@ void AttrNode::emitLit(pOb val) {
 
 
 void AttrNode::emitLookup(pOb symbol) {
+fprintf(stderr, "%s\n", __PRETTY_FUNCTION__);
     const LocationType locType = (LocationType)GET_GENERIC_TYPE(dest);
     const int argno = GET_ARGREG_INDEX(dest);
     const int regno = GET_CTXTREG_INDEX(dest);
@@ -412,6 +416,9 @@ void AttrNode::emitLookup(pOb symbol) {
     PROTECT_THIS(AttrNode);
 
     unsigned litOffset = SELF->cu->extendLitvec(symbol);
+
+fprintf(stderr, "  symbol=%s\n", BASE(symbol)->asCstring());
+fprintf(stderr, "  locType=%d\n", locType);
 
     switch (locType) {
     case LT_CtxtRegister:
@@ -529,13 +536,13 @@ void AttrNode::emitUntaggedRtn(Label next) {
 
 
 void AttrNode::emitXfer(Location source) {
+
     if (source == dest) {
         return;
     }
 
     const LocationType destType = (LocationType)GET_GENERIC_TYPE(dest);
     const LocationType sourceType = (LocationType)GET_GENERIC_TYPE(source);
-
     PROTECT_THIS(AttrNode);
 
     if (sourceType == LT_GlobalVariable) {
@@ -690,15 +697,23 @@ void SymbolNode::initialize(pOb ctEnv, pOb freeEnv, Location dest,
     SET_FLAG(word, f_inlineableNode);
     SET_FLAG(word, f_simpleNode);
 
+//printf("%s Loc=%s\n", __FUNCTION__, dest.atom->asCstring());
+fprintf(stderr, "%s\n", __PRETTY_FUNCTION__);
+fprintf(stderr, "  sym=%s\n", BASE(sym)->asCstring());
+fprintf(stderr, "  dest=%s\n", BASE(dest.atom)->asCstring());
+fprintf(stderr, "  env=%s\n", BASE(freeEnv)->asCstring());
+
     if (BASE(freeEnv)->lex(sym, 0) != LocLimbo) {
         /*
          * The symbol is free, and we should make no attempt to lex it.
          */
         loc = LocLimbo;
+fprintf(stderr, "  free\n");
         return;
     }
 
     loc = BASE(ctEnv)->lex(sym, 0);
+fprintf(stderr, "  A loc=%s\n", BASE(loc.atom)->asCstring());
 
     if (loc != LocLimbo) {
         assert(GET_GENERIC_TYPE(loc) == LT_LexVariable);
@@ -706,22 +721,34 @@ void SymbolNode::initialize(pOb ctEnv, pOb freeEnv, Location dest,
     }
 
     loc = GlobalEnv->lex(sym, 0);
+fprintf(stderr, "  B loc=%s\n", BASE(loc.atom)->asCstring());
 
     if (loc != LocLimbo) {
+fprintf(stderr, "  not LocLimbo\n");
+        
         assert(GET_GENERIC_TYPE(loc) == LT_LexVariable);
         /*
          * If the level is non-zero, then the binding was actually found
          * in some ancestor of GlobalEnv (e.g., Top-SBO), and we don't
          * want to mark it as a global reference.
          */
-        if (GET_LEXVAR_LEVEL(loc) == 0) {
+        if (GET_LEXVAR_LEVEL(loc) == 0)
+//        if (false)
+        {
             loc = GlobalVar(GET_LEXVAR_OFFSET(loc));
+fprintf(stderr, "  C loc=%s\n", BASE(loc.atom)->asCstring());
             return;
+        } else {
+fprintf(stderr, "  Force runtime lookup\n");
+
+
+
         }
     }
 
     loc = LocLimbo;
     cu->warning("no compile-time binding for '%s", SYMPTR(sym));
+fprintf(stderr, "  D loc=%s\n", BASE(loc.atom)->asCstring());
 }
 
 
@@ -729,16 +756,20 @@ void SymbolNode::emitDispatchCode(bool ctxtAvailable, bool, RtnCode rtn,
                                   Label next) {
     assert(ctxtAvailable);
 
+fprintf(stderr, "%s\n", __PRETTY_FUNCTION__);
     Location temp = dest;
     PROTECT_THIS(SymbolNode);
 
     if (rtn == TaggedRtn) {
+fprintf(stderr, "  tagged\n");
         SELF->dest = LocRslt;
     }
 
     if (SELF->loc == LocLimbo) {
+fprintf(stderr, "  lookup\n");
         SELF->emitLookup(SELF->sym);
     } else {
+fprintf(stderr, "  xfer\n");
         SELF->emitXfer(SELF->loc);
     }
 
@@ -748,7 +779,9 @@ void SymbolNode::emitDispatchCode(bool ctxtAvailable, bool, RtnCode rtn,
 
 
 int SymbolNode::primNumber() {
-    if (GET_GENERIC_TYPE(loc) == LT_GlobalVariable) {
+    if (GET_GENERIC_TYPE(loc) == LT_GlobalVariable)
+//    if (false)
+    {
         pOb globalVal = GlobalEnv->entry(GET_GLOBALVAR_OFFSET(loc));
         Prim* prim = BASE(globalVal)->InlineablePrimP();
         return (prim == INVALID) ? -1 : prim->primNumber();
