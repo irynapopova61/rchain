@@ -241,7 +241,6 @@ class SymbolNode : public AttrNode {
    protected:
     Location loc;
     Ob* sym;
-    Template* templat;  // AT&T usurped the id "template".
 
     SymbolNode(Ob*, bool);
 
