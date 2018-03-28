@@ -732,17 +732,14 @@ fprintf(stderr, "  not LocLimbo\n");
          * in some ancestor of GlobalEnv (e.g., Top-SBO), and we don't
          * want to mark it as a global reference.
          */
-        if (GET_LEXVAR_LEVEL(loc) == 0)
-//        if (false)
-        {
+        if (GET_LEXVAR_LEVEL(loc) == 0) {
             loc = GlobalVar(GET_LEXVAR_OFFSET(loc));
+            if (primNumber() < 0) {
+                loc = LocLimbo;
+fprintf(stderr, "  Force runtime lookup\n");
+            }
 fprintf(stderr, "  C loc=%s\n", BASE(loc.atom)->asCstring());
             return;
-        } else {
-fprintf(stderr, "  Force runtime lookup\n");
-
-
-
         }
     }
 
@@ -780,7 +777,6 @@ fprintf(stderr, "  xfer\n");
 
 int SymbolNode::primNumber() {
     if (GET_GENERIC_TYPE(loc) == LT_GlobalVariable)
-//    if (false)
     {
         pOb globalVal = GlobalEnv->entry(GET_GLOBALVAR_OFFSET(loc));
         Prim* prim = BASE(globalVal)->InlineablePrimP();

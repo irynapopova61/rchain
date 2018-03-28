@@ -702,6 +702,28 @@ fprintf(stderr, "  expr=%s\n", BASE(expr)->asCstring());
 
 Ob* VirtualMachine::vmLiterals[16] = {0};
 
+void dumpGlobalEnv() {
+    int size=TAGVAL(GlobalEnv->keyVec->indexedSize());
+    for(int i=0; i<size; i++) {
+        fprintf(stderr, "%s\n", BASE(GlobalEnv->keyVec->nth(i))->asCstring());
+    }
+}
+
+int idxGlobalEnv(pOb key) {
+    int size=TAGVAL(GlobalEnv->keyVec->indexedSize());
+    const char *keyStr = BASE(key)->asCstring();
+
+    for(int i=0; i<size; i++) {
+        const char * val = BASE(GlobalEnv->keyVec->nth(i))->asCstring();
+
+        if (strcmp(keyStr, val) == 0) {
+            fprintf(stderr, "%s found in GlobalEnv!\n", keyStr);
+            return i;
+        }
+    }
+    return -1;
+}
+
 void VirtualMachine::execute() {
     Instr instr;
     Location loc;
@@ -1137,14 +1159,22 @@ fprintf(stderr, "  opJmpFalse:\n");
 fprintf(stderr, "  opLookupToArg:\n");
         const int argno = OP_f2_op0(instr);
         pOb key = code->lit(OP_f2_op1(instr));
-        pOb const val = BASE(BASE(ctxt->selfEnv)->meta())
+        pOb val = BASE(BASE(ctxt->selfEnv)->meta())
                             ->lookupOBO(ctxt->selfEnv, key, ctxt);
         if (val == UPCALL) {
             ctxt->pc = code->relativize(pc.absolute);
             goto doNextThread;
         } else if (val == ABSENT) {
-            handleMissingBinding(key, ArgReg(argno));
-            goto doNextThread;
+            // Perhaps it's in the GlobalEnv
+            int idx = idxGlobalEnv(key);
+            if (idx>=0) {
+                val = GlobalEnv->entry(idx);
+            }
+
+            if (val == ABSENT) {
+                handleMissingBinding(key, ArgReg(argno));
+                goto doNextThread;
+            }
         }
 
         ASSIGN(ctxt->argvec, elem(argno), val);
@@ -1174,18 +1204,19 @@ fprintf(stderr, "  opLookupToReg:\n");
         pOb val = BASE(BASE(ctxt->selfEnv)->meta())
                             ->lookupOBO(ctxt->selfEnv, key, ctxt);
 
-fprintf(stderr, "  regno=%d\n", regno);
-fprintf(stderr, "  key=%s\n", BASE(key)->asCstring());
-fprintf(stderr, "  val=%s\n", BASE(val)->asCstring());
-
         if (val == UPCALL) {
-fprintf(stderr, "  val=UPCALL\n");
             ctxt->pc = code->relativize(pc.absolute);
             goto doNextThread;
         } else if (val == ABSENT) {
-fprintf(stderr, "  val=ABSENT\n");
-            handleMissingBinding(key, CtxtReg((CtxtRegName)regno));
-            goto doNextThread;
+            // Perhaps it's in the GlobalEnv
+            int idx = idxGlobalEnv(key);
+            if (idx>=0) {
+                val = GlobalEnv->entry(idx);
+            }
+            if (val == ABSENT) {
+                handleMissingBinding(key, CtxtReg((CtxtRegName)regno));
+                goto doNextThread;
+            }
         }
 
         ASSIGN(ctxt, reg(regno), val);
