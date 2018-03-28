@@ -672,7 +672,7 @@ pOb VirtualMachine::unwindAndDispatch() {
 void VirtualMachine::traceOpcode() {
     char buf[128];
     code->dumpInstr(pc.absolute, &buf[0]);
-    fprintf(stderr, "%s\n", buf);
+    printf("%s\n", buf);
 }
 
 
@@ -687,7 +687,6 @@ void VirtualMachine::load(pOb expr) {
 
 void VirtualMachine::evaluate(pOb expr) {
     Code* cp = BASE(expr)->compileWrt(TopEnv, NIV);
-
     if (cp != INVALID) {
         setup(cp, printResult, ArgReg(0));
         execute();

@@ -531,13 +531,13 @@ void AttrNode::emitUntaggedRtn(Label next) {
 
 
 void AttrNode::emitXfer(Location source) {
-
     if (source == dest) {
         return;
     }
 
     const LocationType destType = (LocationType)GET_GENERIC_TYPE(dest);
     const LocationType sourceType = (LocationType)GET_GENERIC_TYPE(source);
+
     PROTECT_THIS(AttrNode);
 
     if (sourceType == LT_GlobalVariable) {
@@ -701,12 +701,14 @@ void SymbolNode::initialize(pOb ctEnv, pOb freeEnv, Location dest,
     }
 
     loc = BASE(ctEnv)->lex(sym, 0);
+
     if (loc != LocLimbo) {
         assert(GET_GENERIC_TYPE(loc) == LT_LexVariable);
         return;
     }
 
     loc = GlobalEnv->lex(sym, 0);
+
     if (loc != LocLimbo) {
         assert(GET_GENERIC_TYPE(loc) == LT_LexVariable);
         /*
@@ -732,6 +734,7 @@ void SymbolNode::initialize(pOb ctEnv, pOb freeEnv, Location dest,
 void SymbolNode::emitDispatchCode(bool ctxtAvailable, bool, RtnCode rtn,
                                   Label next) {
     assert(ctxtAvailable);
+
     Location temp = dest;
     PROTECT_THIS(SymbolNode);
 
@@ -751,8 +754,7 @@ void SymbolNode::emitDispatchCode(bool ctxtAvailable, bool, RtnCode rtn,
 
 
 int SymbolNode::primNumber() {
-    if (GET_GENERIC_TYPE(loc) == LT_GlobalVariable)
-    {
+    if (GET_GENERIC_TYPE(loc) == LT_GlobalVariable) {
         pOb globalVal = GlobalEnv->entry(GET_GLOBALVAR_OFFSET(loc));
         Prim* prim = BASE(globalVal)->InlineablePrimP();
         return (prim == INVALID) ? -1 : prim->primNumber();

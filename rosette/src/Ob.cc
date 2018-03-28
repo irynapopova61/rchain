@@ -1002,6 +1002,7 @@ DEF("compile", obCompile, 1, 3) {
     }
 
     pOb result = BASE(ARG(0))->compileWrt(proto, info);
+
     if (result == INVALID) {
         return PRIM_ERROR("compilation aborted");
     } else {
