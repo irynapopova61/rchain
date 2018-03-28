@@ -869,13 +869,13 @@ pOb Ob::unquote() { return self(); }
 Code* Ob::compileWrt(pOb env, pOb info) {
     PROTECT(env);
     pOb me = self();
+    if (VerboseFlag) fprintf(stderr, "%s\n", __PRETTY_FUNCTION__);
 
     CompilationUnit* cu = CompilationUnit::create(me, info, me);
     cu->atTopLevel();
 
     Code * cp = cu->compileExpr(env, TopEnv);
-fprintf(stderr, "%s\n", __PRETTY_FUNCTION__);
-cp->dumpOn(stderr);
+    if (VerboseFlag) cp->dumpOn(stderr);
 
     return cp;
 }
@@ -1001,11 +1001,7 @@ DEF("compile", obCompile, 1, 3) {
         proto = ARG(1);
     }
 
-fprintf(stderr, "%s\n", __FUNCTION__);
-fprintf(stderr, "  proto=%s\n", BASE(proto)->asCstring());
-
     pOb result = BASE(ARG(0))->compileWrt(proto, info);
-
     if (result == INVALID) {
         return PRIM_ERROR("compilation aborted");
     } else {

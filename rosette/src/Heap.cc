@@ -1138,7 +1138,7 @@ Ob* Ob::relocate() {
      */
 
     if (FREED(this)) {
-        warning("relocate called on freed %s", typestring());
+//        warning("relocate called on freed %s", typestring());
         return (Ob*)INVALID;
     }
 

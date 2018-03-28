@@ -1542,7 +1542,6 @@ void Reader::resetBuffer() {
 
 char* Reader::finalizeBuffer() {
     buffer('\0');
-fprintf(stderr, "buf=%s\n", buf);
     return buf;
 }
 
